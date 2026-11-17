@@ -7,6 +7,7 @@ use std::sync::Arc;
 use std::time::Duration;
 
 use anyhow::Result;
+use windows::Win32::Graphics::Direct3D11::ID3D11Texture2D;
 use windows::Win32::Graphics::Gdi::HMONITOR;
 use windows::Win32::System::Threading::{GetCurrentThread, SetThreadPriority, THREAD_PRIORITY_ABOVE_NORMAL};
 
@@ -34,6 +35,8 @@ pub enum Event {
     Started(String),
     Saved(std::path::PathBuf),
     SaveFailed(String),
+    /// Se guardó, pero el video salió negro (dice por qué).
+    Black(String),
     Error(String),
     /// Cambió el juego detectado (nombre del ejecutable sin ".exe").
     Game(Option<String>),
@@ -217,7 +220,7 @@ fn session(cfg: &mut Config, rx: &Receiver<Cmd>, notify: &Notify, restarted: Opt
     game.poll(0);
     // Qué monitor grabar: el del juego; si no hay juego, el de la ventana activa; si no, el principal.
     let mut cap = Capture::new(restarted.or_else(|| game.monitor()).or_else(game::active_monitor))?;
-    let (w, h) = (cap.width, cap.height);
+    let (w, h) = video_size(cap.width, cap.height);
     let mut enc = Encoder::new(&cap.device, cap.luid, w, h, fps, cfg.bitrate_mbps * 1_000_000)?;
     log(&format!(
         "grabando {} a {w}x{h} @ {fps} fps, H.264 {} Mbps, buffer {} s, encoder: {}",
@@ -246,6 +249,8 @@ fn session(cfg: &mut Config, rx: &Receiver<Cmd>, notify: &Notify, restarted: Opt
     let mut next_frame = 0i64;
     let mut packets: VecDeque<Packet> = VecDeque::new();
     let mut out = Vec::new();
+    // Último cuadro que se le dio al encoder (para revisar al guardar si salió negro).
+    let mut last_fed: Option<ID3D11Texture2D> = None;
 
     loop {
         loop {
@@ -253,9 +258,13 @@ fn session(cfg: &mut Config, rx: &Receiver<Cmd>, notify: &Notify, restarted: Opt
                 Ok(Cmd::Stop) | Err(TryRecvError::Disconnected) => return Ok(End::Stop),
                 Ok(Cmd::Save) => {
                     let now = now_100ns() - t0;
-                    if save_clip(cfg, &packets, &enc, &au, now, frame_dur, notify) && cfg.sound_on_save {
+                    let saved = save_clip(cfg, &packets, &enc, &au, now, frame_dur, notify);
+                    if saved && cfg.sound_on_save {
                         sound::play_saved();
                         au.masks.push((now, now + sound::SAVED_LEN + SOUND_LATENCY));
+                    }
+                    if saved {
+                        check_black(&cap, last_fed.as_ref(), cfg.capture_mode == CaptureMode::Screen || au.game.visible(), notify);
                     }
                 }
                 Ok(Cmd::Update(c)) => {
@@ -307,6 +316,7 @@ fn session(cfg: &mut Config, rx: &Receiver<Cmd>, notify: &Notify, restarted: Opt
                 if enc.pending_input > 0 {
                     let tex = if visible { c.convert()? } else { c.black() };
                     enc.feed(&tex, pts, frame_dur)?;
+                    last_fed = Some(tex);
                 }
             }
             next_frame = pts + frame_dur;
@@ -321,6 +331,39 @@ fn session(cfg: &mut Config, rx: &Receiver<Cmd>, notify: &Notify, restarted: Opt
 
         timer.sleep(next_frame - (now_100ns() - t0));
     }
+}
+
+/// Lo más grande que acepta H.264 en todas las GPUs y reproductores (los decodificadores de Windows
+/// y NVENC no pasan de 4096 de ancho). Un monitor más grande se graba achicado, sin deformarlo.
+const MAX_W: u32 = 4096;
+const MAX_H: u32 = 2304;
+
+fn video_size(w: u32, h: u32) -> (u32, u32) {
+    let scale = (MAX_W as f64 / w as f64).min(MAX_H as f64 / h as f64).min(1.0);
+    ((w as f64 * scale) as u32 & !1, (h as f64 * scale) as u32 & !1)
+}
+
+/// Negro puro: en la captura (BGRA) es 0 y en el video (Y de NV12, rango limitado) es 16. Se deja un
+/// margen chico para que una escena oscura de verdad no cuente como falla.
+const BLACK_SHOT: u32 = 2;
+const BLACK_VIDEO: u32 = 17;
+
+/// Revisa el último cuadro grabado: si salió negro, lo anota en el log con la etapa que falló y avisa.
+fn check_black(cap: &Capture, fed: Option<&ID3D11Texture2D>, visible: bool, notify: &Notify) {
+    if !visible {
+        return; // "Solo juegos" sin juego en pantalla: el negro es a propósito
+    }
+    let shot = cap.latest.as_ref().and_then(|f| Converter::mean_luma(&cap.device, &cap.context, &f.tex));
+    let video = fed.and_then(|t| Converter::mean_luma(&cap.device, &cap.context, t));
+    log(&format!("brillo al guardar (0-255): captura {shot:?}, video {video:?} · {}", cap.describe()));
+    let why = match (shot, video) {
+        (Some(s), _) if s <= BLACK_SHOT => {
+            "Windows entrega la pantalla en negro (contenido protegido, otra app bloqueando la captura o el monitor en otra placa)."
+        }
+        (Some(s), Some(v)) if v <= BLACK_VIDEO && s > 10 => "La placa de video no pudo convertir la imagen.",
+        _ => return,
+    };
+    notify(Event::Black(why.into()));
 }
 
 /// Descarta GOPs completos que ya quedaron fuera de la ventana.

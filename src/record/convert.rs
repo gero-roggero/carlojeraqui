@@ -115,7 +115,15 @@ impl Converter {
             let dh = (sh as f64 * scale).round() as i32 & !1;
             let (x, y) = (((w as i32 - dw) / 2) & !1, ((h as i32 - dh) / 2) & !1);
             let dest = RECT { left: x, top: y, right: x + dw, bottom: y + dh };
+            // Todos los rectángulos y el alfa explícitos: con los valores por defecto algunos drivers
+            // dejan la imagen afuera o la mezclan con el fondo negro (la captura trae alfa sin definir).
+            let full = RECT { left: 0, top: 0, right: sd.Width as i32, bottom: sd.Height as i32 };
+            vctx.VideoProcessorSetStreamSourceRect(&vp, 0, true, Some(&full));
             vctx.VideoProcessorSetStreamDestRect(&vp, 0, true, Some(&dest));
+            let target = RECT { left: 0, top: 0, right: w as i32, bottom: h as i32 };
+            vctx.VideoProcessorSetOutputTargetRect(&vp, true, Some(&target));
+            vctx.VideoProcessorSetStreamAlpha(&vp, 0, false, 1.0);
+            vctx.VideoProcessorSetOutputAlphaFillMode(&vp, D3D11_VIDEO_PROCESSOR_ALPHA_FILL_MODE_OPAQUE, 0);
             let black = D3D11_VIDEO_COLOR { Anonymous: D3D11_VIDEO_COLOR_0 { RGBA: D3D11_VIDEO_COLOR_RGBA { R: 0.0, G: 0.0, B: 0.0, A: 1.0 } } };
             vctx.VideoProcessorSetOutputBackgroundColor(&vp, false, &black);
 
@@ -149,6 +157,45 @@ impl Converter {
 
     pub fn black(&self) -> ID3D11Texture2D {
         self.black.clone()
+    }
+
+    /// Brillo promedio (0-255) de una textura BGRA o NV12, leyendo una muestra en la CPU. Una vez por clip,
+    /// para saber si un clip negro viene de la captura de Windows o de la conversión.
+    pub fn mean_luma(device: &ID3D11Device, context: &ID3D11DeviceContext, tex: &ID3D11Texture2D) -> Option<u32> {
+        unsafe {
+            let mut d = D3D11_TEXTURE2D_DESC::default();
+            tex.GetDesc(&mut d);
+            d.MipLevels = 1;
+            d.ArraySize = 1;
+            d.Usage = D3D11_USAGE_STAGING;
+            d.BindFlags = 0;
+            d.CPUAccessFlags = D3D11_CPU_ACCESS_READ.0 as u32;
+            d.MiscFlags = 0;
+            let mut s = None;
+            device.CreateTexture2D(&d, None, Some(&mut s)).ok()?;
+            let s = s?;
+            context.CopyResource(&s, tex);
+            let mut m = D3D11_MAPPED_SUBRESOURCE::default();
+            context.Map(&s, 0, D3D11_MAP_READ, 0, Some(&mut m)).ok()?;
+            let p = m.pData as *const u8;
+            let pitch = m.RowPitch as usize;
+            let nv12 = d.Format == DXGI_FORMAT_NV12;
+            let (mut sum, mut n) = (0u64, 0u64);
+            for y in (0..d.Height as usize).step_by(16) {
+                for x in (0..d.Width as usize).step_by(16) {
+                    sum += if nv12 {
+                        // Plano Y: 16 es negro en rango limitado.
+                        *p.add(y * pitch + x) as u64
+                    } else {
+                        let px = p.add(y * pitch + x * 4);
+                        (*px as u64 + *px.add(1) as u64 + *px.add(2) as u64) / 3
+                    };
+                    n += 1;
+                }
+            }
+            context.Unmap(&s, 0);
+            (n > 0).then(|| (sum / n) as u32)
+        }
     }
 
     /// Convierte la imagen actual a una textura NV12 del pool y la devuelve.

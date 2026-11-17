@@ -279,6 +279,7 @@ impl App {
             }
             Event::Saved(_) => {} // el sonido lo reproduce la grabadora al instante
             Event::SaveFailed(e) => self.balloon("No se pudo guardar el clip", &e, true),
+            Event::Black(e) => self.balloon("El clip se guardó pero salió negro", &e, true),
             Event::Error(e) => {
                 // La grabadora avisa en cada reintento: el globo sale solo al pasar de grabar a error.
                 let new = self.error.is_none();
