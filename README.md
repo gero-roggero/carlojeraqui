@@ -2,7 +2,8 @@
 
 Grabador de repeticiones instantáneas para Windows, ultraliviano: graba siempre en segundo plano
 (en RAM) y con una tecla (F9) guarda los últimos segundos como MP4. Todo el video pasa por la GPU
-(DXGI Desktop Duplication → D3D11 NV12 → encoder H.264 por hardware de Media Foundation).
+(DXGI Desktop Duplication o Windows Graphics Capture → D3D11 NV12 → encoder H.264 por hardware de
+Media Foundation). Se puede grabar una pantalla (automática o fija), una ventana cualquiera o solo el juego.
 
 Las versiones se publican en los [Releases](https://github.com/gero-roggero/carlojeraqui/releases)
 de este repo, que es donde las busca el actualizador automático.
@@ -59,7 +60,10 @@ src/
   record/          grabación
     recorder.rs    hilo de grabación: captura -> encoder -> buffer -> guardar
     game.rs        qué es "el juego" (ventana en pantalla completa), para video y audio
-    capture.rs, convert.rs, encoder.rs, audio.rs, mux.rs, clock.rs
+    capture.rs     qué se graba: un monitor (DXGI Desktop Duplication) o una ventana (wgc.rs)
+    target.rs      ventanas abiertas para elegir en "Una ventana" y cómo reencontrarlas
+    wgc.rs         captura de una sola ventana (Windows Graphics Capture)
+    convert.rs, encoder.rs, audio.rs, mux.rs, clock.rs
   settings/        ventana principal (mod.rs: estado; pages.rs: páginas)
   editor/          editor de clips (proceso aparte)
     mod.rs         ventana y bucle principal

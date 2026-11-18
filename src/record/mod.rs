@@ -8,3 +8,5 @@ mod encoder;
 mod game;
 mod mux;
 pub mod recorder;
+pub mod target;
+mod wgc;

@@ -185,6 +185,11 @@ fn alive(p: &Proc) -> bool {
     unsafe { GetExitCodeProcess(p.handle, &mut code).is_ok() && code == STILL_ACTIVE }
 }
 
+/// "programa.exe" de un proceso, de la lista de procesos (sirve aunque no se lo pueda abrir).
+pub(super) fn process_name(pid: u32) -> Option<String> {
+    snapshot().into_iter().find(|(p, _)| *p == pid).map(|(_, n)| n)
+}
+
 /// (pid, nombre.exe) de todos los procesos.
 fn snapshot() -> Vec<(u32, String)> {
     let mut v = Vec::new();

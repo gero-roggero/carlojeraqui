@@ -18,14 +18,16 @@ pub enum CaptureMode {
     Screen,
     /// Captura de juego: solo el juego mientras se ve, en el monitor donde esté (si no, negro).
     GamesOnly,
+    /// Una ventana: solo la app elegida, aunque esté tapada o en otro monitor.
+    Window,
 }
 
 impl From<String> for CaptureMode {
     fn from(s: String) -> Self {
-        if s == "juegos" {
-            CaptureMode::GamesOnly
-        } else {
-            CaptureMode::Screen
+        match s.as_str() {
+            "juegos" => CaptureMode::GamesOnly,
+            "ventana" => CaptureMode::Window,
+            _ => CaptureMode::Screen,
         }
     }
 }
@@ -35,6 +37,7 @@ impl From<CaptureMode> for &'static str {
         match m {
             CaptureMode::Screen => "pantalla",
             CaptureMode::GamesOnly => "juegos",
+            CaptureMode::Window => "ventana",
         }
     }
 }
@@ -69,6 +72,9 @@ pub struct Config {
     /// Monitor fijo para "Pantalla completa" (ej. "\\.\DISPLAY2"). Vacío = automático: el del juego
     /// o, sin juego, el de la ventana activa.
     pub monitor: String,
+    /// Modo "Una ventana": el programa ("chrome.exe") y el título de la ventana elegida.
+    pub window_exe: String,
+    pub window_title: String,
     pub sound_on_save: bool,
     /// Atajo global para pausar/reanudar la grabación (vk 0 = sin asignar).
     pub toggle_vk: u32,
@@ -132,6 +138,8 @@ impl Default for Config {
             mic_device: String::new(),
             capture_mode: CaptureMode::Screen,
             monitor: String::new(),
+            window_exe: String::new(),
+            window_title: String::new(),
             sound_on_save: true,
             toggle_vk: 0,
             toggle_mods: 0,

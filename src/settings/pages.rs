@@ -13,7 +13,7 @@ use crate::config::{CaptureMode, GlobalAction, MAX_MBPS, MAX_SECONDS, MIN_MBPS};
 /// Calidades de video de un toque (Mbps): baja, media y alta.
 const QUALITY: [u32; 3] = [15, 30, 60];
 use crate::log::app_dir;
-use crate::record::audio;
+use crate::record::{audio, target};
 use crate::ui_kit::sound;
 use crate::ui_kit::theme::*;
 use crate::ui_kit::window::open_folder;
@@ -230,6 +230,67 @@ impl SettingsApp {
         });
     }
 
+    /// Qué pantalla grabar: automático o una fija.
+    fn monitor_row(&mut self, ui: &mut egui::Ui) {
+        row(ui, "Pantalla", LABEL_W, |ui| {
+            ui.with_layout(Layout::right_to_left(Align::Center), |ui| {
+                if button(ui, "Actualizar", Kind::Secondary).on_hover_text("Buscar pantallas conectadas").clicked() {
+                    self.displays = super::displays();
+                }
+                const AUTO: &str = "Automático (la del juego)";
+                let current = if self.cfg.monitor.is_empty() {
+                    AUTO.to_string()
+                } else {
+                    self.displays.iter().find(|(id, _)| *id == self.cfg.monitor).map(|(_, l)| l.clone()).unwrap_or_else(|| "Pantalla desconectada".into())
+                };
+                let w = ui.available_width();
+                egui::ComboBox::from_id_salt("monitor")
+                    .width(w - 8.0)
+                    .truncate()
+                    .selected_text(current.clone())
+                    .show_ui(ui, |ui| {
+                        ui.selectable_value(&mut self.cfg.monitor, String::new(), AUTO);
+                        for (id, label) in self.displays.clone() {
+                            ui.selectable_value(&mut self.cfg.monitor, id, label);
+                        }
+                    })
+                    .response
+                    .on_hover_text(current);
+            });
+        });
+    }
+
+    /// Qué ventana grabar: cualquier app abierta. La lista se arma al desplegarla, así siempre está al día.
+    fn window_row(&mut self, ui: &mut egui::Ui) {
+        row(ui, "Ventana", LABEL_W, |ui| {
+            let current = if self.cfg.window_exe.is_empty() {
+                "Elegí una app…".to_string()
+            } else {
+                target::label(&self.cfg.window_exe, &self.cfg.window_title)
+            };
+            let w = ui.available_width();
+            egui::ComboBox::from_id_salt("window")
+                .width(w - 8.0)
+                .truncate()
+                .selected_text(current.clone())
+                .show_ui(ui, |ui| {
+                    let open = target::list();
+                    if open.is_empty() {
+                        ui.label(RichText::new("No hay ventanas abiertas").color(MUTED));
+                    }
+                    for t in open {
+                        let selected = t.exe.eq_ignore_ascii_case(&self.cfg.window_exe) && t.title == self.cfg.window_title;
+                        if ui.selectable_label(selected, target::label(&t.exe, &t.title)).clicked() {
+                            self.cfg.window_exe = t.exe;
+                            self.cfg.window_title = t.title;
+                        }
+                    }
+                })
+                .response
+                .on_hover_text(current);
+        });
+    }
+
     fn recording_section(&mut self, ui: &mut egui::Ui) {
         section(ui, "Grabación", |ui| {
             row(ui, "Duración del clip", LABEL_W, |ui| {
@@ -265,43 +326,25 @@ impl SettingsApp {
             hint(ui, LABEL_W + 8.0, "Video MP4 (H.264): se reproduce en cualquier PC, celular, Discord o WhatsApp.");
             divider(ui);
             row(ui, "Qué se graba", LABEL_W, |ui| {
-                seg(ui, &mut self.cfg.capture_mode, &[(CaptureMode::Screen, "Pantalla completa"), (CaptureMode::GamesOnly, "Captura de juego")]);
+                seg(
+                    ui,
+                    &mut self.cfg.capture_mode,
+                    &[(CaptureMode::Screen, "Pantalla"), (CaptureMode::Window, "Una ventana"), (CaptureMode::GamesOnly, "Juego")],
+                );
             });
-            if self.cfg.capture_mode == CaptureMode::Screen {
-                row(ui, "Monitor", LABEL_W, |ui| {
-                    ui.with_layout(Layout::right_to_left(Align::Center), |ui| {
-                        if button(ui, "Actualizar", Kind::Secondary).on_hover_text("Buscar monitores conectados").clicked() {
-                            self.displays = super::displays();
-                        }
-                        const AUTO: &str = "Automático (el del juego)";
-                        let current = if self.cfg.monitor.is_empty() {
-                            AUTO.to_string()
-                        } else {
-                            self.displays.iter().find(|(id, _)| *id == self.cfg.monitor).map(|(_, l)| l.clone()).unwrap_or_else(|| "Monitor desconectado".into())
-                        };
-                        let w = ui.available_width();
-                        egui::ComboBox::from_id_salt("monitor")
-                            .width(w - 8.0)
-                            .truncate()
-                            .selected_text(current.clone())
-                            .show_ui(ui, |ui| {
-                                ui.selectable_value(&mut self.cfg.monitor, String::new(), AUTO);
-                                for (id, label) in self.displays.clone() {
-                                    ui.selectable_value(&mut self.cfg.monitor, id, label);
-                                }
-                            })
-                            .response
-                            .on_hover_text(current);
-                    });
-                });
+            match self.cfg.capture_mode {
+                CaptureMode::Screen => self.monitor_row(ui),
+                CaptureMode::Window => self.window_row(ui),
+                CaptureMode::GamesOnly => {}
             }
             hint(
                 ui,
                 LABEL_W + 8.0,
                 match (self.cfg.capture_mode, self.cfg.monitor.is_empty()) {
-                    (CaptureMode::GamesOnly, _) => "Graba solo el juego, en el monitor donde esté. Si lo minimizás o lo tapás con otra ventana, esa parte del clip queda en negro y no se ve tu escritorio.",
+                    (CaptureMode::GamesOnly, _) => "Graba solo el juego en pantalla completa, en el monitor donde esté. Si lo minimizás o lo tapás con otra ventana, esa parte del clip queda en negro y no se ve tu escritorio.",
+                    (CaptureMode::Window, _) => "Graba solo esa app, aunque la tapes con otras ventanas o la lleves a otro monitor. Si la cerrás, se pausa hasta que la vuelvas a abrir.",
                     (CaptureMode::Screen, true) => "Graba todo lo que se ve en el monitor del juego (sin juego, el de la ventana activa). Con dos monitores, elegí uno para grabar siempre ese.",
-                    (CaptureMode::Screen, false) => "Graba siempre ese monitor entero: juegos, escritorio y otras ventanas, aunque juegues en otro.",
+                    (CaptureMode::Screen, false) => "Graba siempre esa pantalla entera: juegos, escritorio y otras ventanas, aunque juegues en otra.",
                 },
             );
             divider(ui);

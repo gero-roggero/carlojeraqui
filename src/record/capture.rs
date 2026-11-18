@@ -10,8 +10,10 @@ use windows::Win32::Graphics::Direct3D::{D3D_DRIVER_TYPE_UNKNOWN, D3D_FEATURE_LE
 use windows::Win32::Graphics::Direct3D11::*;
 use windows::Win32::Graphics::Dxgi::Common::DXGI_MODE_ROTATION;
 use windows::Win32::Graphics::Dxgi::*;
-use windows::Win32::Graphics::Gdi::{MonitorFromPoint, HMONITOR, MONITOR_DEFAULTTOPRIMARY};
+use windows::Win32::Graphics::Gdi::{MonitorFromPoint, MonitorFromWindow, HMONITOR, MONITOR_DEFAULTTONEAREST, MONITOR_DEFAULTTOPRIMARY};
 
+use super::target::{label, Target};
+use super::wgc::WindowSource;
 use crate::log::log;
 
 /// Una duplicación que no se pudo abrir se reintenta cada 5 s (100 ns).
@@ -61,6 +63,8 @@ pub struct Capture {
     failing: bool,
     /// Último monitor que no se pudo seguir sin reiniciar (para avisarlo una sola vez).
     skipped: Option<HMONITOR>,
+    /// Modo "Una ventana": la ventana que se graba (en vez del monitor) y cómo se llama.
+    win: Option<(WindowSource, String)>,
 }
 
 impl Capture {
@@ -90,7 +94,41 @@ impl Capture {
         Err(last)
     }
 
+    /// Graba solo esa ventana, con la GPU del monitor donde está.
+    pub fn for_window(t: &Target) -> Result<Self> {
+        let monitor = unsafe { MonitorFromWindow(t.hwnd, MONITOR_DEFAULTTONEAREST) };
+        let factory: IDXGIFactory1 = unsafe { CreateDXGIFactory1()? };
+        let mut last = anyhow!("no se encontró la GPU de la ventana");
+        let mut i = 0;
+        while let Ok(adapter) = unsafe { factory.EnumAdapters1(i) } {
+            i += 1;
+            for out in outputs(&adapter).into_iter().filter(|o| o.monitor == monitor) {
+                let attempt = Self::device_on(adapter.clone(), out).and_then(|mut cap| {
+                    let src = WindowSource::new(&cap.device, t.hwnd)?;
+                    (cap.width, cap.height) = src.size();
+                    cap.win = Some((src, label(&t.exe, &t.title)));
+                    Ok(cap)
+                });
+                match attempt {
+                    Ok(c) => return Ok(c),
+                    Err(e) => {
+                        log(&format!("no se pudo grabar la ventana con esta GPU: {e}"));
+                        last = e;
+                    }
+                }
+            }
+        }
+        Err(last)
+    }
+
     fn open_on(adapter: IDXGIAdapter1, out: Output) -> Result<Self> {
+        let mut cap = Self::device_on(adapter, out)?;
+        cap.open()?;
+        Ok(cap)
+    }
+
+    /// Dispositivo D3D11 en esa GPU, todavía sin capturar nada.
+    fn device_on(adapter: IDXGIAdapter1, out: Output) -> Result<Self> {
         unsafe {
             let adesc = adapter.GetDesc1()?;
             let mut device = None;
@@ -112,7 +150,7 @@ impl Capture {
             if let Ok(mt) = device.cast::<ID3D11Multithread>() {
                 let _ = mt.SetMultithreadProtected(true);
             }
-            let mut cap = Capture {
+            Ok(Capture {
                 device,
                 context,
                 luid: adesc.AdapterLuid,
@@ -127,15 +165,17 @@ impl Capture {
                 retry_at: 0,
                 failing: false,
                 skipped: None,
-            };
-            cap.open()?;
-            Ok(cap)
+                win: None,
+            })
         }
     }
 
     /// "\\.\DISPLAY2 (NVIDIA GeForce RTX 2060)", para el log.
     pub fn describe(&self) -> String {
-        format!("{} ({})", self.out.name, self.gpu)
+        match &self.win {
+            Some((_, name)) => format!("la ventana \"{name}\" ({})", self.gpu),
+            None => format!("{} ({})", self.out.name, self.gpu),
+        }
     }
 
     fn open(&mut self) -> Result<()> {
@@ -150,6 +190,9 @@ impl Capture {
     /// monitor (el del juego): si no coincide, pide reiniciar. Sin `native`, un monitor de otra
     /// resolución se escala adentro del video y uno de otra GPU se deja pasar (reiniciar perdería el buffer).
     pub fn aim(&mut self, monitor: HMONITOR, native: bool) -> Aim {
+        if self.win.is_some() {
+            return Aim::Same; // grabando una ventana: el monitor no importa
+        }
         let same_size = |o: &Output| (o.width, o.height) == (self.width, self.height);
         if monitor == self.out.monitor && (!native || same_size(&self.out)) {
             return Aim::Same;
@@ -193,6 +236,13 @@ impl Capture {
 
     /// Toma la imagen más reciente si hubo cambios (no bloquea).
     pub fn poll(&mut self, now: i64) -> Result<()> {
+        if let Some((src, _)) = self.win.as_mut() {
+            // El cuadro se suelta recién después de copiarlo.
+            if let Some((_frame, tex)) = src.next()? {
+                self.copy(&tex)?;
+            }
+            return Ok(());
+        }
         if self.dup.is_none() {
             if now < self.retry_at {
                 return Ok(());

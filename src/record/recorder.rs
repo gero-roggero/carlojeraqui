@@ -16,7 +16,7 @@ use super::capture::{Aim, Capture};
 use super::clock::{now_100ns, Timer};
 use super::convert::Converter;
 use super::encoder::{has_param_sets, Encoder, Packet};
-use super::{game, mux};
+use super::{game, mux, target, wgc};
 use crate::config::{CaptureMode, Config};
 use crate::log::{file_stamp, log};
 use crate::mf::{frames_at, Mf};
@@ -79,8 +79,8 @@ impl Drop for Recorder {
 
 enum End {
     Stop,
-    /// Volver a empezar grabando este monitor (el del juego).
-    Restart(HMONITOR),
+    /// Volver a empezar (grabando este monitor, si hay uno: el del juego).
+    Restart(Option<HMONITOR>),
 }
 
 fn thread_main(mut cfg: Config, rx: Receiver<Cmd>, notify: Notify) {
@@ -92,7 +92,7 @@ fn thread_main(mut cfg: Config, rx: Receiver<Cmd>, notify: Notify) {
     loop {
         match session(&mut cfg, &rx, &notify, target.take()) {
             Ok(End::Stop) => break,
-            Ok(End::Restart(m)) => target = Some(m),
+            Ok(End::Restart(m)) => target = m,
             Err(e) => {
                 log(&format!("error de captura: {e:?}"));
                 // Cada intento fallido avisa; la bandeja muestra el globo solo al pasar de grabar a error.
@@ -221,7 +221,16 @@ fn session(cfg: &mut Config, rx: &Receiver<Cmd>, notify: &Notify, restarted: Opt
     // Qué monitor grabar: el elegido en los ajustes; si no, el del juego; si no hay juego, el de la
     // ventana activa; si no, el principal.
     let mut pin = pinned(cfg);
-    let mut cap = Capture::new(pin.or(restarted).or_else(|| game.monitor()).or_else(game::active_monitor))?;
+    let mut cap = match window_source(cfg) {
+        Some((exe, title)) => {
+            if exe.is_empty() {
+                anyhow::bail!("elegí en Ajustes qué ventana grabar");
+            }
+            let t = target::find(exe, title).ok_or_else(|| wgc::not_open(&target::label(exe, title)))?;
+            Capture::for_window(&t)?
+        }
+        None => Capture::new(pin.or(restarted).or_else(|| game.monitor()).or_else(game::active_monitor))?,
+    };
     let (w, h) = video_size(cap.width, cap.height);
     let mut enc = Encoder::new(&cap.device, cap.luid, w, h, fps, cfg.bitrate_mbps * 1_000_000)?;
     log(&format!(
@@ -266,11 +275,16 @@ fn session(cfg: &mut Config, rx: &Receiver<Cmd>, notify: &Notify, restarted: Opt
                         au.masks.push((now, now + sound::SAVED_LEN + SOUND_LATENCY));
                     }
                     if saved {
-                        check_black(&cap, last_fed.as_ref(), cfg.capture_mode == CaptureMode::Screen || au.game.visible(), notify);
+                        check_black(&cap, last_fed.as_ref(), cfg.capture_mode != CaptureMode::GamesOnly || au.game.visible(), notify);
                     }
                 }
                 Ok(Cmd::Update(c)) => {
+                    // Otra ventana, o pasar a grabar una ventana (o dejar de): se arranca de nuevo.
+                    let again = window_source(cfg) != window_source(&c);
                     *cfg = c;
+                    if again {
+                        return Ok(End::Restart(None));
+                    }
                     pin = pinned(cfg);
                     next_aim = 0; // un monitor nuevo se toma enseguida
                     au.sync(cfg, now_100ns() - t0);
@@ -299,7 +313,7 @@ fn session(cfg: &mut Config, rx: &Receiver<Cmd>, notify: &Notify, restarted: Opt
             };
             if let Some(m) = want {
                 if let Aim::Restart = cap.aim(m, native) {
-                    return Ok(End::Restart(m));
+                    return Ok(End::Restart(Some(m)));
                 }
             }
         }
@@ -319,7 +333,7 @@ fn session(cfg: &mut Config, rx: &Receiver<Cmd>, notify: &Notify, restarted: Opt
 
         if now >= next_frame {
             let pts = (now / frame_dur) * frame_dur;
-            let visible = cfg.capture_mode == CaptureMode::Screen || au.game.visible();
+            let visible = cfg.capture_mode != CaptureMode::GamesOnly || au.game.visible();
             if let Some(c) = conv.as_mut() {
                 // Solo convertir si el encoder pidió otra imagen; si está ocupado se salta un cuadro.
                 if enc.pending_input > 0 {
@@ -340,6 +354,11 @@ fn session(cfg: &mut Config, rx: &Receiver<Cmd>, notify: &Notify, restarted: Opt
 
         timer.sleep(next_frame - (now_100ns() - t0));
     }
+}
+
+/// Programa y título de la ventana a grabar, si el modo es "Una ventana".
+fn window_source(cfg: &Config) -> Option<(&str, &str)> {
+    (cfg.capture_mode == CaptureMode::Window).then_some((cfg.window_exe.as_str(), cfg.window_title.as_str()))
 }
 
 /// El monitor fijo de los ajustes, si hay uno elegido, se graba "Pantalla completa" y sigue conectado.
