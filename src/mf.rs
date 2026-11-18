@@ -13,7 +13,7 @@ pub const FRAME_BYTES: usize = 4;
 /// AAC de los clips y las exportaciones: 192 kbps.
 const AAC_BYTES_PER_SECOND: u32 = 24_000;
 
-/// El formato de audio de Clippy para WASAPI (Windows convierte el del dispositivo a este).
+/// El formato de audio de Carlojeraqui para WASAPI (Windows convierte el del dispositivo a este).
 pub const WAVE_FORMAT: WAVEFORMATEX = WAVEFORMATEX {
     wFormatTag: WAVE_FORMAT_PCM as u16,
     nChannels: 2,
@@ -61,7 +61,7 @@ impl Drop for Mf {
     }
 }
 
-/// Tipo de Media Foundation del audio de Clippy (PCM).
+/// Tipo de Media Foundation del audio de Carlojeraqui (PCM).
 pub unsafe fn pcm_type() -> Result<IMFMediaType> {
     let t = MFCreateMediaType()?;
     t.SetGUID(&MF_MT_MAJOR_TYPE, &MFMediaType_Audio)?;

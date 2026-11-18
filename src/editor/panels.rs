@@ -256,7 +256,7 @@ impl EditorApp {
         let fade = ui.ctx().animate_bool_with_time_and_easing(egui::Id::new("message"), shown, if shown { T_FADE } else { 0.0 }, ease_out);
         ui.horizontal_centered(|ui| {
             app_mark(ui, 26.0);
-            ui.label(RichText::new("Clippy").family(bold()).size(18.0).color(TEXT));
+            ui.label(RichText::new("Carlojeraqui").family(bold()).size(18.0).color(TEXT));
             ui.label(RichText::new("Editor").size(18.0).color(MUTED));
             ui.add_space(24.0);
             ui.add_enabled_ui(!self.undo.is_empty(), |ui| {

@@ -76,7 +76,7 @@ pub fn run(background: bool) {
         let Ok(hwnd) = CreateWindowExW(
             WS_EX_TOOLWINDOW,
             TRAY_CLASS,
-            w!("ClippyHost"),
+            w!("CarlojeraquiHost"),
             WS_OVERLAPPED,
             0,
             0,
@@ -105,13 +105,13 @@ pub fn run(background: bool) {
         app.tray(NIM_ADD);
         APP.with(|a| *a.borrow_mut() = Some(app));
         with_app(|a| a.apply(cfg.clone(), true));
-        log("Clippy iniciado");
+        log("Carlojeraqui iniciado");
         if first_run {
             let key = hotkey_name(cfg.hotkey_vk, cfg.hotkey_mods);
             with_app(|a| {
                 a.balloon(
-                    "Clippy está grabando",
-                    &format!("Apretá {key} para guardar los últimos {}. Clippy queda acá, en la bandeja.", fmt_secs(cfg.seconds)),
+                    "Carlojeraqui está grabando",
+                    &format!("Apretá {key} para guardar los últimos {}. Carlojeraqui queda acá, en la bandeja.", fmt_secs(cfg.seconds)),
                     false,
                 )
             });
@@ -206,11 +206,11 @@ impl App {
 
     fn tip(&self) -> String {
         if let Some(e) = &self.error {
-            return format!("Clippy · error: {e}");
+            return format!("Carlojeraqui · error: {e}");
         }
         if self.cfg.enabled {
             let mut t = format!(
-                "Clippy · grabando · {} guarda {}",
+                "Carlojeraqui · grabando · {} guarda {}",
                 hotkey_name(self.cfg.hotkey_vk, self.cfg.hotkey_mods),
                 fmt_secs(self.cfg.seconds)
             );
@@ -219,7 +219,7 @@ impl App {
             }
             t
         } else {
-            "Clippy · pausado".into()
+            "Carlojeraqui · pausado".into()
         }
     }
 
@@ -286,7 +286,7 @@ impl App {
                 self.error = Some(e.clone());
                 self.tray(NIM_MODIFY);
                 if new {
-                    self.balloon("Clippy no puede grabar", &format!("{e}\nSe reintenta solo."), true);
+                    self.balloon("Carlojeraqui no puede grabar", &format!("{e}\nSe reintenta solo."), true);
                 }
             }
         }
@@ -337,7 +337,7 @@ fn show_menu(hwnd: HWND) {
         let _ = AppendMenuW(menu, MF_STRING | check, ID_TOGGLE, w!("Grabando"));
         let mic = with_app(|a| a.cfg.mic_audio).unwrap_or(false);
         let _ = AppendMenuW(menu, MF_STRING | if mic { MF_CHECKED } else { MF_UNCHECKED }, ID_MIC, w!("Micrófono"));
-        let _ = AppendMenuW(menu, MF_STRING, ID_SETTINGS, w!("Abrir Clippy"));
+        let _ = AppendMenuW(menu, MF_STRING, ID_SETTINGS, w!("Abrir Carlojeraqui"));
         let _ = AppendMenuW(menu, MF_SEPARATOR, 0, PCWSTR::null());
         let _ = AppendMenuW(menu, MF_STRING, ID_EXIT, w!("Salir"));
 
@@ -417,7 +417,7 @@ unsafe extern "system" fn wndproc(hwnd: HWND, msg: u32, wp: WPARAM, lp: LPARAM) 
         }
         WM_UPDATE => {
             if let Some((v, _)) = update::available() {
-                with_app(|a| a.balloon("Hay una versión nueva de Clippy", &format!("La versión {v} está lista. Tocá acá para actualizar."), false));
+                with_app(|a| a.balloon("Hay una versión nueva de Carlojeraqui", &format!("La versión {v} está lista. Tocá acá para actualizar."), false));
             }
             LRESULT(0)
         }
@@ -446,7 +446,7 @@ unsafe extern "system" fn wndproc(hwnd: HWND, msg: u32, wp: WPARAM, lp: LPARAM) 
         // wparam 0: se canceló el apagado de Windows, así que se sigue grabando.
         WM_ENDSESSION if wp.0 == 0 => LRESULT(0),
         WM_CLOSE | WM_ENDSESSION => {
-            // `taskkill /IM Clippy.exe` o apagado de Windows: salir prolijo.
+            // `taskkill /IM Carlojeraqui.exe` o apagado de Windows: salir prolijo.
             with_app(|a| a.quit());
             LRESULT(0)
         }

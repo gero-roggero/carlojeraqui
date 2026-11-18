@@ -1,11 +1,11 @@
-# Clippy (app) — guía para agentes
+# Carlojeraqui (app) — guía para agentes
 
 Grabador de repeticiones instantáneas para Windows en Rust (eframe/egui 0.29 glow, windows 0.58).
 Ver `README.md` para el mapa del código y los modos del exe.
 
 ## Reglas
 
-- **Liviano ante todo.** El exe no puede crecer sin una razón fuerte: medí `target/release/clippy.exe`
+- **Liviano ante todo.** El exe no puede crecer sin una razón fuerte: medí `target/release/carlojeraqui.exe`
   antes y después de cada cambio. No sumes dependencias si Windows ya trae la API.
 - **Que se comporte como una app de verdad** (Medal, NVIDIA Instant Replay): nada hardcodeado
   para un juego, nada que el usuario tenga que configurar si se puede detectar.
@@ -16,7 +16,7 @@ Ver `README.md` para el mapa del código y los modos del exe.
 ## Dónde va cada cosa
 
 - Modos del exe, argumentos, candados, títulos de ventana y mensajes a la bandeja: solo en
-  `src/app/mode.rs` (`Mode`, `Window`). No escribas `"--settings"` ni `"Local\\Clippy..."` en otro lado.
+  `src/app/mode.rs` (`Mode`, `Window`). No escribas `"--settings"` ni `"Local\\Carlojeraqui..."` en otro lado.
 - Atajos globales: `config::GlobalAction` (ids, etiqueta, tecla). Atajos del editor: `editor/shortcuts.rs`.
 - Qué cuenta como juego: solo `src/record/game.rs` (lo usan el modo "Solo juegos" y el canal de audio).
 - `config.json` lo escriben la ventana de ajustes y la bandeja; `editor.json` solo el editor.
@@ -57,11 +57,11 @@ y nada de código muerto.
 ```bash
 cargo clippy --features devtools -- -D warnings   # chequeo rápido, el mismo que corre el CI
 cargo build --profile fast --features devtools    # para probar: unos segundos por cambio
-target/fast/clippy.exe --test 8 <carpeta> game
+target/fast/carlojeraqui.exe --test 8 <carpeta> game
 cargo build --release                             # una sola vez, al final, para medir el tamaño
 ```
 
 Compilá siempre en `target/` con estos perfiles: otra `--target-dir` recompila todo de cero.
 
 No hay tests automáticos. Después de cambiar la grabación, probá con `--test` y mirá
-`%APPDATA%\Clippy\clippy.log`. Después de cambiar ventanas, abrí `--settings` y `--editor`.
+`%APPDATA%\Carlojeraqui\carlojeraqui.log`. Después de cambiar ventanas, abrí `--settings` y `--editor`.

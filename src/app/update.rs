@@ -1,5 +1,5 @@
 //! Actualización automática, lo más liviana posible:
-//! - Una consulta a GitHub como mucho por día, aunque Clippy se abra y se cierre muchas veces
+//! - Una consulta a GitHub como mucho por día, aunque Carlojeraqui se abra y se cierre muchas veces
 //!   (la fecha queda en update.json). Si falla, se reintenta a la hora, no en cada arranque.
 //! - La grabadora la revisa al arrancar y cada hora (puede quedar abierta semanas).
 //! - Si hay versión nueva se avisa (globo de la bandeja y aviso en la ventana principal).
@@ -18,7 +18,7 @@ use super::mode::{tray_running, Mode, Window};
 use crate::log::{app_dir, log};
 
 /// Repositorio público donde se publican las versiones (Releases).
-pub const REPO: &str = "santiremedi/clippy";
+pub const REPO: &str = "gero-roggero/carlojeraqui";
 const HOUR: u64 = 60 * 60;
 const DAY: u64 = 24 * HOUR;
 
@@ -34,7 +34,7 @@ pub struct State {
     /// Qué trae `latest`: el texto del release en GitHub.
     #[serde(default)]
     pub notes: Option<String>,
-    /// Última versión que arrancó la grabadora: si cambia, Clippy se acaba de actualizar.
+    /// Última versión que arrancó la grabadora: si cambia, Carlojeraqui se acaba de actualizar.
     #[serde(default)]
     pub ran: Option<String>,
     /// Versión recién instalada cuyas novedades todavía no se mostraron.
@@ -159,7 +159,7 @@ fn fetch_and_save(s: &mut State, now: u64) -> Result<()> {
 
 /// En segundo plano, mientras corra la grabadora: revisa cada hora si toca consultar y llama a
 /// `notify` con cada versión nueva (también al arrancar, si ya se sabía de una). Antes deja listas las
-/// novedades si Clippy se acaba de actualizar.
+/// novedades si Carlojeraqui se acaba de actualizar.
 pub fn watch(notify: impl Fn() + Send + 'static) {
     std::thread::spawn(move || {
         prepare_news();
@@ -200,14 +200,14 @@ fn fetch_latest() -> Result<(String, String, Option<String>)> {
     let a = r
         .assets
         .into_iter()
-        .find(|a| a.name.eq_ignore_ascii_case("Clippy.exe"))
-        .ok_or_else(|| anyhow!("la versión no tiene Clippy.exe"))?;
+        .find(|a| a.name.eq_ignore_ascii_case("Carlojeraqui.exe"))
+        .ok_or_else(|| anyhow!("la versión no tiene Carlojeraqui.exe"))?;
     Ok((r.tag_name, a.browser_download_url, r.body))
 }
 
 /// Donde queda la versión descargada hasta instalarla.
 fn downloaded_path() -> PathBuf {
-    std::env::temp_dir().join("Clippy-update.exe")
+    std::env::temp_dir().join("Carlojeraqui-update.exe")
 }
 
 /// La versión anterior, renombrada mientras se instala la nueva.
@@ -233,7 +233,7 @@ pub fn start_install(downloaded: &Path) -> Result<()> {
     Ok(())
 }
 
-/// Corre desde el .exe descargado: espera a que Clippy se cierre, lo reemplaza y lo vuelve a abrir.
+/// Corre desde el .exe descargado: espera a que Carlojeraqui se cierre, lo reemplaza y lo vuelve a abrir.
 pub fn apply(target: &Path) -> i32 {
     // Esperar a que se cierren la grabadora y la ventana principal: si la ventana sigue cerrándose
     // cuando arranca la versión nueva, esta cree que ya hay una abierta y no se abre.
@@ -259,7 +259,7 @@ pub fn apply(target: &Path) -> i32 {
         let _ = std::fs::rename(&old, target);
         return 1;
     }
-    log(&format!("Clippy actualizado a {}", current()));
+    log(&format!("Carlojeraqui actualizado a {}", current()));
     let _ = Mode::Tray { background: false }.spawn(target);
     0
 }
@@ -300,7 +300,7 @@ fn http_get(url: &str) -> Result<Vec<u8>> {
     let rest = url.strip_prefix("https://").ok_or_else(|| anyhow!("solo https"))?;
     let (host, path) = rest.split_once('/').map(|(h, p)| (h, format!("/{p}"))).unwrap_or((rest, "/".into()));
     unsafe {
-        let session = Handle(WinHttpOpen(w!("Clippy-Updater"), WINHTTP_ACCESS_TYPE_AUTOMATIC_PROXY, PCWSTR::null(), PCWSTR::null(), 0));
+        let session = Handle(WinHttpOpen(w!("Carlojeraqui-Updater"), WINHTTP_ACCESS_TYPE_AUTOMATIC_PROXY, PCWSTR::null(), PCWSTR::null(), 0));
         if session.0.is_null() {
             bail!("no se pudo iniciar WinHTTP");
         }

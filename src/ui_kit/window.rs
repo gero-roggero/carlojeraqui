@@ -3,7 +3,7 @@
 use eframe::egui;
 use windows::Win32::Foundation::{CloseHandle, HWND, LPARAM};
 
-/// Si la ventana ya está abierta (en otro proceso de Clippy), la trae al frente y devuelve None.
+/// Si la ventana ya está abierta (en otro proceso de Carlojeraqui), la trae al frente y devuelve None.
 pub fn single_instance(mutex: windows::core::PCWSTR, title: &str) -> Option<windows::Win32::Foundation::HANDLE> {
     use windows::Win32::Foundation::{GetLastError, ERROR_ALREADY_EXISTS};
     use windows::Win32::System::Threading::CreateMutexW;
@@ -79,7 +79,7 @@ pub fn window_options(title: &str, min: [f32; 2]) -> eframe::NativeOptions {
     }
 }
 
-/// Ventana de nivel superior con ese título que pertenezca a un proceso clippy.exe
+/// Ventana de nivel superior con ese título que pertenezca a un proceso carlojeraqui.exe
 /// (así no se confunde con, por ejemplo, una carpeta abierta que se llame igual).
 pub fn find_own_window(title: &str) -> Option<HWND> {
     use windows::Win32::Foundation::BOOL;
@@ -95,7 +95,7 @@ pub fn find_own_window(title: &str) -> Option<HWND> {
         if n == s.title.len() && buf[..n] == s.title[..] {
             let mut pid = 0u32;
             GetWindowThreadProcessId(h, Some(&mut pid));
-            if process_is_clippy(pid) {
+            if process_is_own(pid) {
                 s.found = Some(h);
                 return false.into();
             }
@@ -109,7 +109,7 @@ pub fn find_own_window(title: &str) -> Option<HWND> {
     s.found
 }
 
-fn process_is_clippy(pid: u32) -> bool {
+fn process_is_own(pid: u32) -> bool {
     use windows::core::PWSTR;
     use windows::Win32::System::Threading::{OpenProcess, QueryFullProcessImageNameW, PROCESS_NAME_WIN32, PROCESS_QUERY_LIMITED_INFORMATION};
     unsafe {
@@ -125,7 +125,7 @@ fn process_is_clippy(pid: u32) -> bool {
         let me = std::env::current_exe()
             .ok()
             .and_then(|p| p.file_name().map(|n| n.to_string_lossy().to_lowercase()))
-            .unwrap_or_else(|| "clippy.exe".into());
+            .unwrap_or_else(|| "carlojeraqui.exe".into());
         path.ends_with(&me)
     }
 }

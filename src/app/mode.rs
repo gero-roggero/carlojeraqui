@@ -75,7 +75,7 @@ impl Mode {
     }
 }
 
-/// Ventanas de Clippy que corren en su propio proceso.
+/// Ventanas de Carlojeraqui que corren en su propio proceso.
 #[derive(Clone, Copy)]
 pub enum Window {
     Settings,
@@ -85,16 +85,16 @@ pub enum Window {
 impl Window {
     pub fn title(self) -> &'static str {
         match self {
-            Window::Settings => "Clippy",
-            Window::Editor => "Editor de Clippy",
+            Window::Settings => "Carlojeraqui",
+            Window::Editor => "Editor de Carlojeraqui",
         }
     }
 
     /// Candado de instancia única.
     pub fn mutex(self) -> PCWSTR {
         match self {
-            Window::Settings => w!("Local\\Clippy.Settings"),
-            Window::Editor => w!("Local\\Clippy.Editor"),
+            Window::Settings => w!("Local\\Carlojeraqui.Settings"),
+            Window::Editor => w!("Local\\Carlojeraqui.Editor"),
         }
     }
 
@@ -116,9 +116,9 @@ impl Window {
 // --- Proceso de la bandeja (grabadora) ------------------------------------------------
 
 /// Candado de instancia única de la grabadora.
-pub const TRAY_MUTEX: PCWSTR = w!("Local\\Clippy.Main");
+pub const TRAY_MUTEX: PCWSTR = w!("Local\\Carlojeraqui.Main");
 /// Clase de la ventana oculta de la grabadora (recibe los mensajes de los otros procesos).
-pub const TRAY_CLASS: PCWSTR = w!("ClippyHostWindow");
+pub const TRAY_CLASS: PCWSTR = w!("CarlojeraquiHostWindow");
 // Mensajes que recibe la ventana de la bandeja (todos acá para que no se pisen los números).
 /// Clic en el ícono de la bandeja (lo manda Windows).
 pub const WM_TRAY: u32 = WM_APP + 1;

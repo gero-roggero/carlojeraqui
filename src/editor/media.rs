@@ -559,7 +559,7 @@ pub fn export(edit: &Edit, out: &Path, opts: &ExportOpts, prog: &Progress) -> Re
     if let Some(dir) = out.parent() {
         std::fs::create_dir_all(dir)?;
     }
-    let tmp = out.with_extension("clippy-tmp.mp4");
+    let tmp = out.with_extension("carlojeraqui-tmp.mp4");
     let _ = std::fs::remove_file(&tmp);
     let r = (|| unsafe {
         let mut probes = HashMap::new();
@@ -589,8 +589,8 @@ pub fn export(edit: &Edit, out: &Path, opts: &ExportOpts, prog: &Progress) -> Re
         }
         let why = if opts.target.is_none() && edit.copy_parts(size).is_some() { "renderizado con la GPU para cortar exacto" } else { "renderizado con la GPU" };
         // Todo en la GPU; si esa placa o ese archivo no se dejan, se decodifica por CPU (con devtools,
-        // CLIPPY_CPU=1 fuerza ese camino para probarlo).
-        let gpu = d3d_manager().ok().filter(|_| !cfg!(feature = "devtools") || std::env::var_os("CLIPPY_CPU").is_none());
+        // CARLOJERAQUI_CPU=1 fuerza ese camino para probarlo).
+        let gpu = d3d_manager().ok().filter(|_| !cfg!(feature = "devtools") || std::env::var_os("CARLOJERAQUI_CPU").is_none());
         match gpu {
             Some(m) => export_reencode(&edit, &probes, &tmp, opts, prog, Some(&m)).or_else(|e| {
                 prog.check()?;

@@ -1,4 +1,4 @@
-//! Carpeta de datos de la app (%APPDATA%\Clippy), registro (clippy.log) y marcas de tiempo.
+//! Carpeta de datos de la app (%APPDATA%\Carlojeraqui), registro (carlojeraqui.log) y marcas de tiempo.
 
 use std::io::Write;
 use std::path::PathBuf;
@@ -9,7 +9,7 @@ pub fn app_dir() -> PathBuf {
     std::env::var_os("APPDATA")
         .map(PathBuf::from)
         .unwrap_or_else(std::env::temp_dir)
-        .join("Clippy")
+        .join("Carlojeraqui")
 }
 
 fn timestamp() -> String {
@@ -31,7 +31,7 @@ pub fn file_stamp() -> String {
 pub fn log(msg: &str) {
     let dir = app_dir();
     let _ = std::fs::create_dir_all(&dir);
-    let p = dir.join("clippy.log");
+    let p = dir.join("carlojeraqui.log");
     if let Ok(m) = std::fs::metadata(&p) {
         if m.len() > 512 * 1024 {
             let _ = std::fs::remove_file(&p);

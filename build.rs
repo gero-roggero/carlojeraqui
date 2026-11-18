@@ -41,10 +41,10 @@ fn main() {
     for img in &images {
         ico.extend_from_slice(img);
     }
-    let ico_path = out.join("clippy.ico");
+    let ico_path = out.join("carlojeraqui.ico");
     std::fs::write(&ico_path, ico).unwrap();
 
-    let rc_path = out.join("clippy.rc");
+    let rc_path = out.join("carlojeraqui.rc");
     let mut rc = std::fs::File::create(&rc_path).unwrap();
     writeln!(rc, "1 ICON \"{}\"", ico_path.display().to_string().replace('\\', "\\\\")).unwrap();
     embed_resource::compile(&rc_path, embed_resource::NONE);

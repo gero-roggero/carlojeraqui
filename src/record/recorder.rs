@@ -53,7 +53,7 @@ impl Recorder {
     pub fn start(cfg: Config, notify: Notify) -> Self {
         let (tx, rx) = mpsc::channel();
         let handle = std::thread::Builder::new()
-            .name("clippy-rec".into())
+            .name("carlojeraqui-rec".into())
             .spawn(move || thread_main(cfg, rx, notify))
             .ok();
         Self { tx, handle }
@@ -100,7 +100,7 @@ fn thread_main(mut cfg: Config, rx: Receiver<Cmd>, notify: Notify) {
                 match rx.recv_timeout(Duration::from_secs(3)) {
                     Ok(Cmd::Stop) | Err(RecvTimeoutError::Disconnected) => break,
                     Ok(Cmd::Update(c)) => cfg = c,
-                    Ok(Cmd::Save) => notify(Event::SaveFailed("Clippy no está grabando en este momento".into())),
+                    Ok(Cmd::Save) => notify(Event::SaveFailed("Carlojeraqui no está grabando en este momento".into())),
                     Err(RecvTimeoutError::Timeout) => {}
                 }
             }
@@ -451,10 +451,10 @@ fn save_clip(cfg: &Config, packets: &VecDeque<Packet>, enc: &Encoder, au: &Audio
 
     let dir = cfg.output_dir.clone();
     let stamp = file_stamp();
-    let mut path = dir.join(format!("Clippy_{stamp}.mp4"));
+    let mut path = dir.join(format!("Carlojeraqui_{stamp}.mp4"));
     let mut i = 2;
     while path.exists() {
-        path = dir.join(format!("Clippy_{stamp}_{i}.mp4"));
+        path = dir.join(format!("Carlojeraqui_{stamp}_{i}.mp4"));
         i += 1;
     }
     let job = mux::Job { path, video_type, packets: pk, base, frame_dur, audio };

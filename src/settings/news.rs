@@ -16,7 +16,7 @@ impl SettingsApp {
     pub(super) fn news_modals(&mut self, ctx: &egui::Context) {
         if let Some((v, text)) = self.news.clone() {
             let mut done = false;
-            let x = notes_modal(ctx, "news", &format!("Novedades de la {v}"), "Clippy se actualizó. Esto es lo que cambió.", Some(&text), |ui| {
+            let x = notes_modal(ctx, "news", &format!("Novedades de la {v}"), "Carlojeraqui se actualizó. Esto es lo que cambió.", Some(&text), |ui| {
                 done = button_sized(ui, "Listo", Kind::Primary, BUTTON).clicked();
             });
             if x || done {
@@ -25,7 +25,7 @@ impl SettingsApp {
             }
         } else if let Some((v, text)) = self.confirm_update.clone() {
             let (mut install, mut later) = (false, false);
-            let sub = format!("Tenés la {}. Clippy se cierra y vuelve a abrir solo.", update::current());
+            let sub = format!("Tenés la {}. Carlojeraqui se cierra y vuelve a abrir solo.", update::current());
             let x = notes_modal(ctx, "confirm_update", &format!("Actualizar a la {v}"), &sub, text.as_deref(), |ui| {
                 install = button_sized(ui, "Actualizar", Kind::Primary, BUTTON).clicked();
                 later = button_sized(ui, "Ahora no", Kind::Secondary, BUTTON).clicked();

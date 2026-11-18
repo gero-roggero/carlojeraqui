@@ -1,4 +1,4 @@
-//! Inicio con Windows: el valor "Clippy" en HKCU\...\Run, que abre la grabadora sin ventanas.
+//! Inicio con Windows: el valor "Carlojeraqui" en HKCU\...\Run, que abre la grabadora sin ventanas.
 
 use std::path::Path;
 
@@ -8,7 +8,7 @@ use windows::Win32::System::Registry::{RegDeleteKeyValueW, RegGetValueW, RegSetK
 use super::mode::Mode;
 
 const RUN_KEY: PCWSTR = w!("Software\\Microsoft\\Windows\\CurrentVersion\\Run");
-const NAME: PCWSTR = w!("Clippy");
+const NAME: PCWSTR = w!("Carlojeraqui");
 
 /// Línea de comandos registrada, si hay.
 fn registered() -> Option<String> {
@@ -43,7 +43,7 @@ pub fn set(on: bool) {
     }
 }
 
-/// Si el inicio con Windows apunta a un .exe que ya no existe (Clippy se movió de carpeta),
+/// Si el inicio con Windows apunta a un .exe que ya no existe (Carlojeraqui se movió de carpeta),
 /// lo apunta a este. Si apunta a otro .exe que sí existe, no lo toca.
 pub fn repair() {
     let Some(cmd) = registered() else { return };

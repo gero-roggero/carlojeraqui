@@ -1,4 +1,4 @@
-//! Editor de clips estilo CapCut (proceso aparte: `clippy.exe --editor`).
+//! Editor de clips estilo CapCut (proceso aparte: `carlojeraqui.exe --editor`).
 //! Biblioteca a la izquierda, vista previa al centro, ajustes del clip a la derecha y
 //! línea de tiempo abajo con pistas de video (miniaturas) y de audio (forma de onda).
 //! Al cerrar la ventana el proceso termina.
@@ -415,7 +415,7 @@ impl EditorApp {
         let max_h = (ctx.screen_rect().height() - 340.0).clamp(220.0, 560.0);
         let mut done = false;
         let subtitle = match tab {
-            HelpTab::Keys => "Tocá un atajo para cambiarlo. Los que funcionan mientras jugás están en la ventana de Clippy.",
+            HelpTab::Keys => "Tocá un atajo para cambiarlo. Los que funcionan mientras jugás están en la ventana de Carlojeraqui.",
             HelpTab::Guide => "Lo que conviene saber para editar rápido.",
         };
         let x = modal(ctx, "keys", "Ajustes del editor", subtitle, 820.0, |ui| {

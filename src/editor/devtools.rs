@@ -20,18 +20,18 @@ fn secs(s: &str) -> i64 {
     (s.parse::<f64>().unwrap_or(0.0) * 1e7) as i64
 }
 
-/// Con CLIPPY_FRAME="cuartos,espejo,izq,arriba,der,abajo,llenar" (ej. "1,1,0,0,0.5,1,0"), la imagen de todas las
+/// Con CARLOJERAQUI_FRAME="cuartos,espejo,izq,arriba,der,abajo,llenar" (ej. "1,1,0,0,0.5,1,0"), la imagen de todas las
 /// piezas girada, espejada y recortada así.
 fn test_frame() -> Frame {
-    let Ok(v) = std::env::var("CLIPPY_FRAME") else { return Frame::default() };
+    let Ok(v) = std::env::var("CARLOJERAQUI_FRAME") else { return Frame::default() };
     let n: Vec<f32> = v.split(',').map(|x| x.trim().parse().unwrap_or(0.0)).collect();
     let at = |i: usize, d: f32| n.get(i).copied().unwrap_or(d);
     Frame { turns: at(0, 0.0) as u8, flip: at(1, 0.0) != 0.0, crop: [at(2, 0.0), at(3, 0.0), at(4, 1.0), at(5, 1.0)], fill: at(6, 0.0) != 0.0 }
 }
 
-/// Con CLIPPY_RATIO="9:16", el lienzo con esa proporción.
+/// Con CARLOJERAQUI_RATIO="9:16", el lienzo con esa proporción.
 fn test_ratio() -> Option<media::Ratio> {
-    let v = std::env::var("CLIPPY_RATIO").ok()?;
+    let v = std::env::var("CARLOJERAQUI_RATIO").ok()?;
     let (w, h) = v.split_once(':')?;
     Some((w.parse().ok()?, h.parse().ok()?))
 }
@@ -54,8 +54,8 @@ fn parts(args: &[String]) -> BTreeMap<String, Vec<Clip>> {
         let fade = (tok.next().map_or(0, secs), tok.next().map_or(0, secs));
         let start = at.unwrap_or_else(|| tracks.get(&names[0]).and_then(|l| l.last()).map_or(0, Clip::end));
         for n in names {
-            // Con CLIPPY_SPEED, todas a esa velocidad (el mismo tramo del archivo dura menos o más).
-            let speed: f64 = std::env::var("CLIPPY_SPEED").ok().and_then(|v| v.parse().ok()).unwrap_or(1.0);
+            // Con CARLOJERAQUI_SPEED, todas a esa velocidad (el mismo tramo del archivo dura menos o más).
+            let speed: f64 = std::env::var("CARLOJERAQUI_SPEED").ok().and_then(|v| v.parse().ok()).unwrap_or(1.0);
             let src_in = secs(&c[2]);
             let len = if speed > 0.0 { ((secs(&c[3]) - src_in) as f64 / speed) as i64 } else { secs(&c[3]) - src_in };
             let frame = test_frame();
@@ -74,10 +74,10 @@ fn parts(args: &[String]) -> BTreeMap<String, Vec<Clip>> {
 }
 
 impl EditorApp {
-    /// Con `CLIPPY_TEST_TIMELINE` (las mismas partes que `--test-export`, con `|` entre cada dato) el editor
+    /// Con `CARLOJERAQUI_TEST_TIMELINE` (las mismas partes que `--test-export`, con `|` entre cada dato) el editor
     /// arranca con esa línea de tiempo: para sacar capturas sin tocar el mouse.
     pub(super) fn load_test_timeline(&mut self) {
-        let Ok(spec) = std::env::var("CLIPPY_TEST_TIMELINE") else { return };
+        let Ok(spec) = std::env::var("CARLOJERAQUI_TEST_TIMELINE") else { return };
         let args: Vec<String> = spec.split('|').map(str::to_string).collect();
         let tracks = parts(&args);
         let shared = |id: u64| tracks.values().flatten().filter(|c| c.id == id).count() > 1;
@@ -123,7 +123,7 @@ pub fn test_cli(args: &[String]) -> i32 {
                 }
             }
             let cfg = crate::config::load();
-            let target = std::env::var("CLIPPY_TARGET").ok().map(|v| {
+            let target = std::env::var("CARLOJERAQUI_TARGET").ok().map(|v| {
                 let p: Vec<&str> = v.split(',').collect();
                 media::Target {
                     height: p.first().and_then(|x| x.parse().ok()).unwrap_or(0),

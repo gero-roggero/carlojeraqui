@@ -27,15 +27,18 @@ pub fn status_rgba(size: u32, on: bool) -> Vec<u8> {
     v
 }
 
-/// Ícono de la app: azulejo negro redondeado con el símbolo de grabación en blanco.
+/// Ícono de la app: azulejo redondeado violeta a rosa con una "C" blanca y un punto de grabación.
 pub fn app_rgba(size: u32) -> Vec<u8> {
     let s = size as f32;
     let c = s / 2.0;
     let radius = s * 0.22;
     let half = s * 0.47;
-    let ring_out = s * 0.30;
-    let ring_in = s * 0.30 - (s * 0.065).max(1.2);
-    let dot = s * 0.15;
+    let ring_out = s * 0.31;
+    let ring_in = s * 0.31 - (s * 0.085).max(1.5);
+    let dot = s * 0.10;
+    // Media abertura de la "C" (radianes), del lado derecho.
+    let gap = 0.80f32;
+    let (from, to) = ([124.0f32, 58.0, 237.0], [236.0f32, 72.0, 153.0]);
     let mut v = vec![0u8; (size * size * 4) as usize];
     for y in 0..size {
         for x in 0..size {
@@ -46,14 +49,18 @@ pub fn app_rgba(size: u32) -> Vec<u8> {
             let qy = (py.abs() - (half - radius)).max(0.0);
             let rd = (qx * qx + qy * qy).sqrt() - radius;
             let tile = (0.5 - rd).clamp(0.0, 1.0);
-            let edge = (0.5 - (rd + (s / 64.0).max(1.0))).clamp(0.0, 1.0);
             let d = (px * px + py * py).sqrt();
             let cov = |r: f32| (r - d + 0.5).clamp(0.0, 1.0);
-            let white = (cov(ring_out) * (1.0 - cov(ring_in)) + cov(dot)).min(1.0);
-            // Borde sutil gris oscuro, fondo casi negro, símbolo blanco.
-            let base = 14.0 + (52.0 - 14.0) * (tile - edge).max(0.0);
-            let lum = base + (245.0 - base) * white;
-            put(&mut v, size, x, y, [lum as u8; 3], tile);
+            // La abertura con borde suave: la distancia angular pasada a píxeles.
+            let open = ((py.atan2(px).abs() - gap) * d + 0.5).clamp(0.0, 1.0);
+            let white = (cov(ring_out) * (1.0 - cov(ring_in)) * open + cov(dot)).min(1.0);
+            // Degradé en diagonal, de arriba a la izquierda hacia abajo a la derecha.
+            let t = ((px + py) / (2.0 * half) * 0.5 + 0.5).clamp(0.0, 1.0);
+            let rgb = [0, 1, 2].map(|i| {
+                let base = from[i] + (to[i] - from[i]) * t;
+                (base + (250.0 - base) * white) as u8
+            });
+            put(&mut v, size, x, y, rgb, tile);
         }
     }
     v

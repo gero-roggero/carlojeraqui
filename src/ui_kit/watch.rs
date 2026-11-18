@@ -1,5 +1,5 @@
 //! Despierta una ventana cuando algo cambia afuera, sin repintar en reposo: archivos que escribe otro
-//! proceso de Clippy (config.json, el registro de la grabadora), clips nuevos en la carpeta y la
+//! proceso de Carlojeraqui (config.json, el registro de la grabadora), clips nuevos en la carpeta y la
 //! grabadora que se abre o se cierra. Un hilo espera esos avisos de Windows; la ventana pregunta
 //! `take_changed` en cada cuadro y solo relee lo de afuera cuando hace falta.
 

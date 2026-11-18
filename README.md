@@ -1,12 +1,11 @@
-# Clippy
+# Carlojeraqui
 
 Grabador de repeticiones instantáneas para Windows, ultraliviano: graba siempre en segundo plano
 (en RAM) y con una tecla (F9) guarda los últimos segundos como MP4. Todo el video pasa por la GPU
 (DXGI Desktop Duplication → D3D11 NV12 → encoder H.264 por hardware de Media Foundation).
 
-Descarga y novedades en [clpy.vercel.app](https://clpy.vercel.app). Las versiones se publican en
-los [Releases](https://github.com/santiremedi/clippy/releases) de este repo, que es donde las busca
-el actualizador automático.
+Las versiones se publican en los [Releases](https://github.com/gero-roggero/carlojeraqui/releases)
+de este repo, que es donde las busca el actualizador automático.
 
 ## Compilar
 
@@ -14,11 +13,11 @@ el actualizador automático.
 cargo build --release
 ```
 
-El exe queda en `target/release/clippy.exe`. Para publicar se renombra a `Clippy.exe`
-(el actualizador busca ese nombre exacto en el último release de `santiremedi/clippy`).
+El exe queda en `target/release/carlojeraqui.exe`. Para publicar se renombra a `Carlojeraqui.exe`
+(el actualizador busca ese nombre exacto en el último release de `gero-roggero/carlojeraqui`).
 
 Para probar mientras desarrollás, con los modos de prueba sin ventana (no van en el exe publicado).
-Compila en segundos porque no usa LTO; queda en `target/fast/clippy.exe`:
+Compila en segundos porque no usa LTO; queda en `target/fast/carlojeraqui.exe`:
 
 ```bash
 cargo build --profile fast --features devtools
@@ -48,7 +47,7 @@ Solo con `--features devtools`:
 src/
   main.rs          elige el modo
   config.rs        config.json (grabación, audio, atajos globales)
-  log.rs           %APPDATA%\Clippy, clippy.log y marcas de tiempo
+  log.rs           %APPDATA%\Carlojeraqui, carlojeraqui.log y marcas de tiempo
   mf.rs            Media Foundation y el formato de audio de toda la app (PCM 48 kHz estéreo, AAC)
   clipcache.rs     caché de forma de onda y fotogramas clave por clip (la escribe la grabadora, la lee el editor)
   app/             el proceso como app de Windows
@@ -80,21 +79,23 @@ src/
 
 ## Archivos del usuario
 
-Todo en `%APPDATA%\Clippy`: `config.json`, `editor.json`, `library.json`, `update.json`,
-`clippy.log` y `cache\`.
+Todo en `%APPDATA%\Carlojeraqui`: `config.json`, `editor.json`, `library.json`, `update.json`,
+`carlojeraqui.log` y `cache\`.
 
 ## Publicar una versión
 
 1. Subir la versión en `Cargo.toml`.
-2. En GitHub → Actions → **Build** → *Run workflow*, con el tag (por ejemplo `v0.3.0`) y
-   "Publicar el release" tildado. El workflow compila y sube `Clippy.exe` al release de este repo
+2. En GitHub → Actions → **Build** → *Run workflow*, con el tag (por ejemplo `v1.0.0`) y
+   "Publicar el release" tildado. El workflow compila y sube `Carlojeraqui.exe` al release de este repo
    (si no existe, lo crea como borrador). Sin tildarlo, igual compila y deja el exe como artefacto descargable.
-3. Escribir el texto del release para quien usa la app (Clippy lo muestra como novedades: títulos `#`,
+3. Escribir el texto del release para quien usa la app (Carlojeraqui lo muestra como novedades: títulos `#`,
    viñetas `-` y párrafos, sin `**` ni comillas invertidas) y recién ahí publicarlo. Un release publicado
    sin texto no muestra novedades.
 
-## Licencia
+## Créditos y licencia
 
-[GPL-3.0-or-later](LICENSE). Podés usar, estudiar, cambiar y redistribuir Clippy; si distribuís una
-versión modificada, tiene que ser con su código y bajo la misma licencia. El nombre "Clippy" y su
-ícono no se pueden usar para identificar versiones modificadas.
+Carlojeraqui es de [gero-roggero](https://github.com/gero-roggero) y está basado en
+[Clippy](https://github.com/santiremedi/clippy), de santiremedi, también bajo GPL-3.0.
+
+[GPL-3.0-or-later](LICENSE). Podés usar, estudiar, cambiar y redistribuir Carlojeraqui; si distribuís una
+versión modificada, tiene que ser con su código y bajo la misma licencia.

@@ -3,7 +3,7 @@
 //! - "Escritorio": todo lo demás (process loopback excluyendo el juego), o todo el sistema si no hay juego detectado.
 //! - "Micrófono": el dispositivo elegido o el predeterminado de Windows.
 //!
-//! Se captura en el formato del dispositivo (float, con sus canales) y Clippy lo baja a estéreo:
+//! Se captura en el formato del dispositivo (float, con sus canales) y Carlojeraqui lo baja a estéreo:
 //! la conversión de Windows de 5.1/7.1 a estéreo atenúa el sonido 10 dB o más.
 //! Se guarda en RAM como PCM 48 kHz estéreo y se mezcla/comprime a AAC recién al guardar.
 
@@ -109,7 +109,7 @@ impl Audio {
             let loopback = if mic { 0 } else { AUDCLNT_STREAMFLAGS_LOOPBACK };
             let event = CreateEventW(None, false, false, PCWSTR::null())?;
             // Los canales del dispositivo (la captura por proceso no tiene formato propio: usa el de la
-            // salida por defecto). Windows solo cambia la frecuencia a 48 kHz; los canales los baja Clippy.
+            // salida por defecto). Windows solo cambia la frecuencia a 48 kHz; los canales los baja Carlojeraqui.
             let (channels, mask) = match &source {
                 Source::Only(_) | Source::AllBut(_) => mix_layout(&default_device()?.Activate::<IAudioClient>(CLSCTX_ALL, None)?),
                 _ => mix_layout(&client),

@@ -402,7 +402,7 @@ pub fn is_video(p: &Path) -> bool {
 
 /// Videos de `dir` que se muestran (el archivo temporal de una exportación en curso, no).
 fn videos_in(dir: &Path) -> impl Iterator<Item = PathBuf> {
-    std::fs::read_dir(dir).into_iter().flatten().flatten().map(|e| e.path()).filter(|p| is_video(p) && !p.to_string_lossy().contains("clippy-tmp"))
+    std::fs::read_dir(dir).into_iter().flatten().flatten().map(|e| e.path()).filter(|p| is_video(p) && !p.to_string_lossy().contains("carlojeraqui-tmp"))
 }
 
 /// Las carpetas de adentro de la de los clips (`root`) y los videos que se ven: en la de los clips (`dir` None), los
@@ -522,10 +522,10 @@ pub fn folder_name_ok(name: &str) -> bool {
 /// Caracteres que Windows no deja usar en un nombre de archivo o carpeta.
 pub const BAD_NAME: &str = "<>:\"/\\|?*";
 
-/// "Clippy_2026-11-15_23-38-30" -> "15/11 · 23:38:30"
+/// "Carlojeraqui_2026-11-15_23-38-30" -> "15/11 · 23:38:30"
 pub fn pretty_name(p: &Path) -> String {
     let stem = p.file_stem().map(|s| s.to_string_lossy().to_string()).unwrap_or_default();
-    if let Some(rest) = stem.strip_prefix("Clippy_") {
+    if let Some(rest) = stem.strip_prefix("Carlojeraqui_") {
         let parts: Vec<&str> = rest.split(['_', '-']).collect();
         if parts.len() >= 6 && parts[..6].iter().all(|x| x.chars().all(|c| c.is_ascii_digit())) {
             let extra = if parts.len() > 6 { format!(" ({})", parts[6..].join(" ")) } else { String::new() };

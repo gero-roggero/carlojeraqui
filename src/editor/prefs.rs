@@ -1,4 +1,4 @@
-//! Preferencias propias del editor (%APPDATA%\Clippy\editor.json): atajos de teclado, últimas
+//! Preferencias propias del editor (%APPDATA%\Carlojeraqui\editor.json): atajos de teclado, últimas
 //! opciones de exportación, tamaño de los paneles y el imán. Solo el editor las lee y las escribe.
 
 use std::path::{Path, PathBuf};

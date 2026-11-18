@@ -1,4 +1,4 @@
-//! Ventana principal / ajustes (proceso aparte: `clippy.exe --settings`).
+//! Ventana principal / ajustes (proceso aparte: `carlojeraqui.exe --settings`).
 //! Al cerrarla el proceso termina, así que mientras jugás no ocupa nada.
 
 use std::path::Path;
@@ -133,7 +133,7 @@ impl SettingsApp {
         }
     }
 
-    /// Descarga la versión nueva en segundo plano y la instala (cierra todo y vuelve a abrir Clippy).
+    /// Descarga la versión nueva en segundo plano y la instala (cierra todo y vuelve a abrir Carlojeraqui).
     fn start_update(&mut self) {
         let Some((_, url)) = self.update.clone() else { return };
         if self.update_busy() {
@@ -336,13 +336,13 @@ impl eframe::App for SettingsApp {
         self.news_modals(ctx);
         if self.confirm_quit {
             let mut quit = false;
-            let x = modal(ctx, "quit", "¿Salir de Clippy?", "Deja de grabar y se cierra todo.", 480.0, |ui| {
+            let x = modal(ctx, "quit", "¿Salir de Carlojeraqui?", "Deja de grabar y se cierra todo.", 480.0, |ui| {
                 modal_body(ui, |ui| {
                     ui.add(
                         egui::Label::new(
                             RichText::new(
                                 "Se cierran el editor y esta ventana. Lo que todavía no guardaste como clip se pierde.\n\n\
-                                 Si solo querés cerrar la ventana, usá la X: Clippy sigue grabando en segundo plano.",
+                                 Si solo querés cerrar la ventana, usá la X: Carlojeraqui sigue grabando en segundo plano.",
                             )
                             .color(MUTED),
                         )

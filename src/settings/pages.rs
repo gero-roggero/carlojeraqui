@@ -31,7 +31,7 @@ impl SettingsApp {
     pub(super) fn nav(&mut self, ui: &mut egui::Ui) {
         ui.horizontal(|ui| {
             app_mark(ui, 28.0);
-            ui.label(RichText::new("Clippy").family(bold()).size(20.0).color(TEXT));
+            ui.label(RichText::new("Carlojeraqui").family(bold()).size(20.0).color(TEXT));
         });
         ui.add_space(16.0);
 
@@ -75,7 +75,7 @@ impl SettingsApp {
         }
 
         ui.with_layout(Layout::bottom_up(Align::Min), |ui| {
-            if wide_button(ui, "Salir de Clippy", Kind::Danger, 36.0).on_hover_text("Deja de grabar y cierra todo").clicked() {
+            if wide_button(ui, "Salir de Carlojeraqui", Kind::Danger, 36.0).on_hover_text("Deja de grabar y cierra todo").clicked() {
                 self.confirm_quit = true;
             }
             ui.add_space(14.0);
@@ -189,7 +189,7 @@ impl SettingsApp {
     pub(super) fn about_section(&mut self, ui: &mut egui::Ui) {
         section(ui, "Acerca de", |ui| {
             row(ui, "Versión", LABEL_W, |ui| {
-                ui.label(RichText::new(format!("Clippy {}", env!("CARGO_PKG_VERSION"))).color(TEXT));
+                ui.label(RichText::new(format!("Carlojeraqui {}", env!("CARGO_PKG_VERSION"))).color(TEXT));
                 ui.with_layout(Layout::right_to_left(Align::Center), |ui| match self.update.clone() {
                     Some((v, _)) => {
                         let busy = self.update_busy();
@@ -222,6 +222,10 @@ impl SettingsApp {
                         ui.add(egui::Label::new(RichText::new(app_dir().display().to_string()).color(MUTED)).truncate());
                     });
                 });
+            });
+            divider(ui);
+            row(ui, "Créditos", LABEL_W, |ui| {
+                ui.add(egui::Label::new(RichText::new("De gero-roggero, basado en Clippy de santiremedi · GPL-3.0").color(MUTED)).wrap());
             });
         });
     }

@@ -60,7 +60,7 @@ fn test_mic() -> i32 {
     0
 }
 
-/// `clippy --test <segundos_a_esperar> <carpeta> [game|desktop|mic|juegos]`: graba, guarda un clip y sale (para pruebas).
+/// `carlojeraqui --test <segundos_a_esperar> <carpeta> [game|desktop|mic|juegos]`: graba, guarda un clip y sale (para pruebas).
 fn test_mode(args: &[String]) -> i32 {
     let wait: u64 = args.first().and_then(|s| s.parse().ok()).unwrap_or(8);
     let dir = args.get(1).map(std::path::PathBuf::from).unwrap_or_else(std::env::temp_dir);

@@ -1,4 +1,4 @@
-//! Configuración persistente (%APPDATA%\Clippy\config.json).
+//! Configuración persistente (%APPDATA%\Carlojeraqui\config.json).
 
 use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
@@ -242,7 +242,7 @@ fn default_output_dir() -> PathBuf {
             let s = p.to_string().ok();
             CoTaskMemFree(Some(p.0 as *const _));
             if let Some(s) = s {
-                return PathBuf::from(s).join("Clippy");
+                return PathBuf::from(s).join("Carlojeraqui");
             }
         }
     }
@@ -250,5 +250,5 @@ fn default_output_dir() -> PathBuf {
         .map(PathBuf::from)
         .unwrap_or_default()
         .join("Videos")
-        .join("Clippy")
+        .join("Carlojeraqui")
 }
