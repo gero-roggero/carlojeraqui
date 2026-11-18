@@ -21,6 +21,17 @@ use pages::page_title;
 mod news;
 mod pages;
 
+/// Monitores para elegir: (nombre de Windows, "Pantalla 2 · 1920×1080").
+fn displays() -> Vec<(String, String)> {
+    crate::record::capture::displays()
+        .into_iter()
+        .map(|d| {
+            let label = d.label();
+            (d.name, label)
+        })
+        .collect()
+}
+
 const LABEL_W: f32 = 168.0;
 /// Ayuda mientras se espera una tecla nueva (Inicio y Atajos).
 const CAPTURE_HINT: &str = "Esc cancela. Podés combinarla con Ctrl, Shift o Alt.";
@@ -59,6 +70,8 @@ struct SettingsApp {
     /// Carpeta y fecha de la última vez que se contaron los clips.
     clips_seen: Option<(std::path::PathBuf, Option<SystemTime>)>,
     mics: Vec<(String, String)>,
+    /// Monitores conectados: (nombre de Windows, texto para mostrar).
+    displays: Vec<(String, String)>,
     /// Versión nueva disponible y estado de la descarga.
     update: Option<(String, String)>,
     update_status: Shared<Result<(), String>>,
@@ -106,6 +119,7 @@ impl SettingsApp {
             clips: (0, None),
             clips_seen: None,
             mics: audio::capture_devices(),
+            displays: displays(),
             update: None,
             update_status: Default::default(),
             updating: false,

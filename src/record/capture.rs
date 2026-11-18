@@ -269,6 +269,48 @@ impl Capture {
     }
 }
 
+/// Un monitor para elegir en los ajustes.
+pub struct Display {
+    /// Nombre de Windows ("\\.\DISPLAY2"): es lo que se guarda en config.json.
+    pub name: String,
+    pub width: u32,
+    pub height: u32,
+    pub primary: bool,
+    pub monitor: HMONITOR,
+}
+
+impl Display {
+    /// "Pantalla 2 · 1920×1080 (principal)"
+    pub fn label(&self) -> String {
+        let n = self.name.trim_start_matches("\\\\.\\DISPLAY");
+        let main = if self.primary { " (principal)" } else { "" };
+        format!("Pantalla {n} · {}×{}{main}", self.width, self.height)
+    }
+}
+
+/// Todos los monitores conectados, en orden (cada uno una sola vez aunque lo vean dos GPUs).
+pub fn displays() -> Vec<Display> {
+    let Ok(factory) = (unsafe { CreateDXGIFactory1::<IDXGIFactory1>() }) else { return Vec::new() };
+    let primary = unsafe { MonitorFromPoint(POINT::default(), MONITOR_DEFAULTTOPRIMARY) };
+    let mut v: Vec<Display> = Vec::new();
+    let mut i = 0;
+    while let Ok(adapter) = unsafe { factory.EnumAdapters1(i) } {
+        i += 1;
+        for o in outputs(&adapter) {
+            if !v.iter().any(|d| d.monitor == o.monitor) {
+                v.push(Display { name: o.name, width: o.width, height: o.height, primary: o.monitor == primary, monitor: o.monitor });
+            }
+        }
+    }
+    v.sort_by_key(|d| (d.name.len(), d.name.clone()));
+    v
+}
+
+/// El monitor que se llama así, si sigue conectado.
+pub fn display_named(name: &str) -> Option<HMONITOR> {
+    displays().into_iter().find(|d| d.name == name).map(|d| d.monitor)
+}
+
 /// Monitores conectados al escritorio que ve esta GPU.
 fn outputs(adapter: &IDXGIAdapter1) -> Vec<Output> {
     let mut v = Vec::new();

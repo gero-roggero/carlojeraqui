@@ -24,7 +24,9 @@ const NOT_GAMES: &[&str] = &[
     "microsoft.media.player", "video.ui", "wmplayer",
     "explorer", "applicationframehost", "powerpnt", "lockapp", "searchhost", "startmenuexperiencehost", "shellexperiencehost",
     // El recorte de pantalla de Windows tapa todo el monitor mientras elegís qué capturar.
-    "snippingtool", "screenclippinghost",
+    "snippingtool", "screenclippinghost", "sharex",
+    // Editores y programas de grabación o chat que se suelen usar maximizados sin bordes.
+    "capcut", "obs64", "obs32", "discord",
     "clippy", "carlojeraqui",
 ];
 

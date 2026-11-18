@@ -163,11 +163,12 @@ impl Encoder {
             mb.Unlock()?;
 
             let key = clean || is_keyframe(&data);
-            if key && self.seq_header.is_none() {
-                let ps = param_sets(&data);
-                if !ps.is_empty() {
-                    self.seq_header = Some(ps);
-                }
+            // SPS/PPS que vienen dentro del video: son los que el encoder usó de verdad. Algunos
+            // (AMD) dicen otros en el tipo de salida y el clip queda ilegible si se usan esos.
+            let ps = if key { param_sets(&data) } else { Vec::new() };
+            if !ps.is_empty() && self.seq_header.as_deref() != Some(&ps[..]) {
+                log(&format!("{}: encabezado H.264 dentro del video ({} bytes)", self.name, ps.len()));
+                self.seq_header = Some(ps);
             }
             out.push(Packet { data, pts, key });
         }
@@ -192,16 +193,20 @@ impl Encoder {
         Ok(())
     }
 
+    /// SPS y PPS reales (Annex-B), si el encoder los mandó dentro del video.
+    pub fn param_sets(&self) -> Option<&[u8]> {
+        self.seq_header.as_deref()
+    }
+
     /// Tipo de salida serializado (para reconstruirlo en el hilo que escribe el MP4).
     pub fn type_blob(&self) -> Option<Vec<u8>> {
         unsafe {
             let src = self.out_type.as_ref()?;
             let t = MFCreateMediaType().ok()?;
             src.CopyAllItems(&t).ok()?;
-            if t.GetBlobSize(&MF_MT_MPEG_SEQUENCE_HEADER).is_err() {
-                if let Some(sh) = &self.seq_header {
-                    t.SetBlob(&MF_MT_MPEG_SEQUENCE_HEADER, sh).ok()?;
-                }
+            // El encabezado que vino dentro del video manda sobre el que dice el tipo.
+            if let Some(sh) = &self.seq_header {
+                t.SetBlob(&MF_MT_MPEG_SEQUENCE_HEADER, sh).ok()?;
             }
             let size = MFGetAttributesAsBlobSize(&t).ok()?;
             let mut v = vec![0u8; size as usize];
@@ -319,6 +324,11 @@ fn nal_type(n: &[u8]) -> u8 {
 /// ¿Hay una imagen IDR (NAL 5)?
 fn is_keyframe(d: &[u8]) -> bool {
     nals(d).iter().any(|n| nal_type(n) == 5)
+}
+
+/// ¿El cuadro ya trae SPS (7)?
+pub fn has_param_sets(d: &[u8]) -> bool {
+    nals(d).iter().any(|n| nal_type(n) == 7)
 }
 
 /// SPS (7) y PPS (8), para el encabezado del MP4.

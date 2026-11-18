@@ -15,7 +15,7 @@ use super::audio::{self, Audio, AudioBuf, Source};
 use super::capture::{Aim, Capture};
 use super::clock::{now_100ns, Timer};
 use super::convert::Converter;
-use super::encoder::{Encoder, Packet};
+use super::encoder::{has_param_sets, Encoder, Packet};
 use super::{game, mux};
 use crate::config::{CaptureMode, Config};
 use crate::log::{file_stamp, log};
@@ -218,8 +218,10 @@ fn session(cfg: &mut Config, rx: &Receiver<Cmd>, notify: &Notify, restarted: Opt
 
     let mut game = game::Detector::default();
     game.poll(0);
-    // Qué monitor grabar: el del juego; si no hay juego, el de la ventana activa; si no, el principal.
-    let mut cap = Capture::new(restarted.or_else(|| game.monitor()).or_else(game::active_monitor))?;
+    // Qué monitor grabar: el elegido en los ajustes; si no, el del juego; si no hay juego, el de la
+    // ventana activa; si no, el principal.
+    let mut pin = pinned(cfg);
+    let mut cap = Capture::new(pin.or(restarted).or_else(|| game.monitor()).or_else(game::active_monitor))?;
     let (w, h) = video_size(cap.width, cap.height);
     let mut enc = Encoder::new(&cap.device, cap.luid, w, h, fps, cfg.bitrate_mbps * 1_000_000)?;
     log(&format!(
@@ -269,6 +271,8 @@ fn session(cfg: &mut Config, rx: &Receiver<Cmd>, notify: &Notify, restarted: Opt
                 }
                 Ok(Cmd::Update(c)) => {
                     *cfg = c;
+                    pin = pinned(cfg);
+                    next_aim = 0; // un monitor nuevo se toma enseguida
                     au.sync(cfg, now_100ns() - t0);
                 }
                 Err(TryRecvError::Empty) => break,
@@ -288,7 +292,12 @@ fn session(cfg: &mut Config, rx: &Receiver<Cmd>, notify: &Notify, restarted: Opt
             let gm = au.game.monitor();
             let native = gm.is_some() && gm != game_monitor;
             game_monitor = gm;
-            if let Some(m) = gm.or_else(game::active_monitor) {
+            // Un monitor fijo se graba siempre a su resolución; en automático, se sigue al juego.
+            let (want, native) = match pin {
+                Some(p) => (Some(p), true),
+                None => (gm.or_else(game::active_monitor), native),
+            };
+            if let Some(m) = want {
                 if let Aim::Restart = cap.aim(m, native) {
                     return Ok(End::Restart(m));
                 }
@@ -331,6 +340,18 @@ fn session(cfg: &mut Config, rx: &Receiver<Cmd>, notify: &Notify, restarted: Opt
 
         timer.sleep(next_frame - (now_100ns() - t0));
     }
+}
+
+/// El monitor fijo de los ajustes, si hay uno elegido, se graba "Pantalla completa" y sigue conectado.
+fn pinned(cfg: &Config) -> Option<HMONITOR> {
+    if cfg.capture_mode != CaptureMode::Screen || cfg.monitor.is_empty() {
+        return None;
+    }
+    let m = super::capture::display_named(&cfg.monitor);
+    if m.is_none() {
+        log(&format!("el monitor elegido ({}) no está conectado: se elige solo", cfg.monitor));
+    }
+    m
 }
 
 /// Lo más grande que acepta H.264 en todas las GPUs y reproductores (los decodificadores de Windows
@@ -436,7 +457,18 @@ fn save_clip(cfg: &Config, packets: &VecDeque<Packet>, enc: &Encoder, au: &Audio
         .rposition(|p| p.key && p.pts <= min)
         .or_else(|| packets.iter().position(|p| p.key));
     let Some(start) = start else { return fail("todavía no hay video en el buffer") };
-    let pk: Vec<Packet> = packets.iter().skip(start).cloned().collect();
+    let mut pk: Vec<Packet> = packets.iter().skip(start).cloned().collect();
+    // El clip arranca con SPS/PPS dentro del primer cuadro: aunque el encabezado del MP4 no coincida
+    // con lo que grabó la placa (pasa con AMD), los reproductores usan estos.
+    match enc.param_sets() {
+        Some(ps) if !has_param_sets(&pk[0].data) => {
+            let mut data = ps.to_vec();
+            data.extend_from_slice(&pk[0].data);
+            pk[0].data = data.into();
+        }
+        Some(_) => {}
+        None => log("el encoder no mandó SPS/PPS dentro del video: se usa el encabezado que declara"),
+    }
     let base = pk[0].pts;
     let end = pk.last().map_or(base, |p| p.pts) + frame_dur;
     let audio = cfg.audio_on().then(|| mixed_audio(cfg, au, frames_at(base), frames_at(end)));

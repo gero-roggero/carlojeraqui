@@ -13,10 +13,10 @@ use windows::Win32::UI::Shell::{FOLDERID_Videos, SHGetKnownFolderPath, KF_FLAG_D
 #[derive(Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Debug, Default)]
 #[serde(from = "String", into = "&'static str")]
 pub enum CaptureMode {
-    /// Todo el monitor del juego (sin juego, el de la ventana activa).
+    /// Pantalla completa: todo un monitor (el elegido o, en automático, el del juego o la ventana activa).
     #[default]
     Screen,
-    /// Solo el juego en pantalla completa mientras se ve (si no, negro).
+    /// Captura de juego: solo el juego mientras se ve, en el monitor donde esté (si no, negro).
     GamesOnly,
 }
 
@@ -66,6 +66,9 @@ pub struct Config {
     pub mic_volume: u32,
     pub mic_device: String,
     pub capture_mode: CaptureMode,
+    /// Monitor fijo para "Pantalla completa" (ej. "\\.\DISPLAY2"). Vacío = automático: el del juego
+    /// o, sin juego, el de la ventana activa.
+    pub monitor: String,
     pub sound_on_save: bool,
     /// Atajo global para pausar/reanudar la grabación (vk 0 = sin asignar).
     pub toggle_vk: u32,
@@ -128,6 +131,7 @@ impl Default for Config {
             mic_volume: 100,
             mic_device: String::new(),
             capture_mode: CaptureMode::Screen,
+            monitor: String::new(),
             sound_on_save: true,
             toggle_vk: 0,
             toggle_mods: 0,
